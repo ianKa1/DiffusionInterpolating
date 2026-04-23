@@ -105,14 +105,14 @@ def interp_poses(pose_md1, pose_md2, alpha, shape):
     return canvas
 
 class ContextManager:
-    def __init__(self, version='2.1'):
+    def __init__(self, version='1.5'):
         self.filters = {}
         self.mode = None
         self.version = version
         if version == '2.1':
-            self.model = create_model('./controlnet/models/cldm_v21.yaml').cuda()
+            self.model = create_model('./models/cldm_v21.yaml').cuda()
         else:
-            self.model = create_model('./controlnet/models/cldm_v15.yaml').cuda()
+            self.model = create_model('./models/cldm_v15.yaml').cuda()
         self.ddim_sampler = DDIMSampler(self.model)
 
     def init_mode(self):
@@ -135,7 +135,7 @@ class ContextManager:
             if self.version == '2.1':
                 self.model.load_state_dict(load_state_dict('./controlnet/models/openpose-sd21.ckpt', location='cuda'))
             else:
-                self.model.load_state_dict(load_state_dict('./controlnet/models/control_sd15_openpose.pth', location='cuda'))
+                self.model.load_state_dict(load_state_dict('./models/control_sd15_openpose.pth', location='cuda'))
         elif mode == 'canny':
             if self.version == '2.1':
                 self.model.load_state_dict(load_state_dict('./controlnet/models/canny-sd21.ckpt', location='cuda'))

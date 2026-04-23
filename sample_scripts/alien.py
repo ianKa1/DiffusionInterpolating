@@ -2,11 +2,13 @@ import sys
 from PIL import Image
 import os, pickle
 osp = os.path
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
-sys.path.append(osp.expandvars('$NFS/code/controlnet/controlnet'))
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+repo_root = osp.dirname(osp.dirname(osp.abspath(__file__)))
+sys.path.append(osp.dirname(repo_root))  # for 'from controlnet import cm'
+sys.path.append(repo_root)               # for 'from share import *'
 from controlnet import cm
 
-CM = cm.ContextManager()
+CM = cm.ContextManager(version='1.5')
 img1 = Image.open('data/alien1.png').convert('RGB').resize((768, 640))
 img2 = Image.open('data/alien2.png').convert('RGB').resize((768, 640))
 
