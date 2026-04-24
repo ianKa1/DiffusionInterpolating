@@ -1,0 +1,15 @@
+ddim_eta: 0.0
+ddim_steps: 200
+guide_scale: 7.5
+n_prompt: lowres, blurry, disfigured, cartoon, painting, drawing, low quality, ugly,
+  watermark, multiple faces
+num_levels: 3
+optimize_cond: 200
+prompt: official portrait, male politician, suit and tie, white background, sharp
+  focus, professional photography, high resolution
+schedule_type: linear
+step_schedule:
+- 0
+- 60
+- 85
+- 110
