@@ -53,7 +53,7 @@ ImportError: libSM.so.6: cannot open shared object file: No such file or directo
 ```
 **Fix:**
 ```bash
-apt-get update && apt-get install -y libsm6 libxext6
+apt-get update && apt-get install -y libxrender1 libxext6 libsm6
 ```
 
 ---

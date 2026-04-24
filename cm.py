@@ -17,7 +17,7 @@ from annotator.canny import CannyDetector
 from annotator.uniformer import UniformerDetector
 from cldm.model import create_model, load_state_dict
 from cldm.ddim_hacked import DDIMSampler
-from controlnet.annotator.openpose import util
+from annotator.openpose import util
 
 def get_step_schedule(min_steps, max_steps, num_levels, schedule_type='convex'):
     diff = max_steps - min_steps
@@ -489,6 +489,7 @@ class ContextManager:
             if optimize_cond:
                 cond1, cond2, uncond_base = self.learn_conditioning(img1, img2, cond1, uncond_base, ddim_steps, guide_scale=guide_scale, num_iters=optimize_cond, cond_lr=cond_lr)
                 if cond_path:
+                    print(f"cond1 {cond1.shape} cond2 {cond2.shape} uncond_base {uncond_base.shape}")
                     torch.save((cond1, cond2, uncond_base), cond_path)
 
         cond = {"c_crossattn": [cond1], 'c_concat': None}
@@ -508,11 +509,14 @@ class ContextManager:
         assert np.log2(num_frames-1) % 1 < 1e-5
         self.ddim_sampler.make_schedule(ddim_steps, ddim_eta=ddim_eta, verbose=False)
         step_schedule = get_step_schedule(min_steps, max_steps, num_levels, schedule_type=schedule_type)
+        print(f"step_schedule {step_schedule}")
         timesteps = self.ddim_sampler.ddim_timesteps
         final_latents = [None] * num_frames
         final_latents[0] = ldm.get_first_stage_encoding(ldm.encode_first_stage(img1.float() / 127.5 - 1.0))
         final_latents[-1] = ldm.get_first_stage_encoding(ldm.encode_first_stage(img2.float() / 127.5 - 1.0))
+        print(f"final_latents' shape {final_latents[0].shape}")
         shape = final_latents[0].shape[-3:]
+        print(f"shape {shape}")
         
         kwargs = dict(cond_lr=cond_lr, cond_steps=optimize_cond, prompt=prompt, n_prompt=n_prompt, ddim_steps=ddim_steps, guide_scale=guide_scale, step_schedule=step_schedule, bias=bias, ddim_eta=ddim_eta, scale_control=scale_control)
         yaml.dump(kwargs, open(f'{out_dir}/args.yaml', 'w'))
@@ -526,11 +530,14 @@ class ContextManager:
             cur_step = step_schedule[-level]
             t = timesteps[cur_step]
             df = 2**(num_levels-level)
+            print(f"Level {level} with timestep {t} and frame step {df} cur_step {cur_step}")
                 
             for frame_ix in range(df, num_frames-1, df*2):
+                print(f"\t frame_ix {frame_ix}")
                 frac = frame_ix/(num_frames-1)
                 if scale_control:
                     ldm.control_scales = [scale_control - 2*abs(frac-.5) * (scale_control-1)] * 13 # range from 1 to scale_control
+                    print(f"\t\t control scale {ldm.control_scales[0]}")
 
                 if controls is not None:
                     pose_img = interp_poses(pose_md1, pose_md2, alpha=frac, shape=img1.shape[-2:]).transpose(2,0,1)
@@ -556,6 +563,10 @@ class ContextManager:
                     l2 = ldm.sqrt_alphas_cumprod[t] * final_latents[frame_ix+df] + ldm.sqrt_one_minus_alphas_cumprod[t] * noise
                     noisy_latent = interpolate_latents(l1, l2, latent_frac)
 
+                    print(f"ddim_sampler.sample args: ddim_steps={ddim_steps}, batch_size=1, shape={shape}, eta={ddim_eta}, timesteps={cur_step}, guide_scale={guide_scale}")
+                    print(f"  cond keys={list(cond.keys()) if isinstance(cond, dict) else type(cond)}")
+                    print(f"  x_T shape={noisy_latent.shape}, dtype={noisy_latent.dtype}")
+                    print(f"  un_cond keys={list(un_cond.keys()) if isinstance(un_cond, dict) else type(un_cond)}")
                     samples, _ = self.ddim_sampler.sample(ddim_steps, 1,
                         shape, cond, verbose=False, eta=ddim_eta,
                         x_T=noisy_latent, timesteps=cur_step,
